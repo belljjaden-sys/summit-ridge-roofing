@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- progressive-enhancement flag: reveal animations only when JS is on -->
+  <script>
+    document.documentElement.classList.add("js");
+    // ?still freezes all motion + forces content visible (for screenshots)
+    if (location.search.indexOf("still") !== -1) document.documentElement.classList.add("still");
+  </script>
+  <title>Summit Ridge Roofing — Roofing Done Properly · Durham Region</title>
+  <meta name="description" content="Summit Ridge Roofing has installed 1,200+ roofs across Ajax, Pickering, Whitby & Oshawa since 2004. Licensed, insured, 25-year workmanship warranty. Book a free inspection." />
+
+  <!-- Leaflet (interactive map) — open-source, no API key -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+  <link rel="stylesheet" href="styles.css" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink:   { DEFAULT:'#1B1714', 800:'#2A231D', 700:'#4A3F35', 500:'#6E6052' },
+            paper: { DEFAULT:'#F6F1E9', 100:'#FCFAF5', 200:'#EEE6D8', 300:'#E2D6C3' },
+            line:  '#E0D4C0',
+            clay:  { DEFAULT:'#BE5429', 600:'#A1431D', 50:'#F4E6DC' },
+            stone: '#8C7D6C',
+          },
+          fontFamily: {
+            display: ['"Bricolage Grotesque"','sans-serif'],
+            sans: ['Inter','system-ui','sans-serif'],
+          },
+          boxShadow: {
+            card: '0 1px 0 rgba(27,23,20,.03), 0 22px 48px -30px rgba(27,23,20,.35)',
+            float:'0 2px 2px rgba(27,23,20,.04), 0 30px 60px -28px rgba(190,84,41,.30)',
+          },
+        }
+      }
+    }
+  </script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
+  <script src="script.js" defer></script>
+</head>
+
+<body class="overflow-x-hidden bg-paper font-sans text-ink antialiased">
+
+  <!-- scroll progress -->
+  <div id="progress" class="fixed inset-x-0 top-0 z-[60] h-[3px] origin-left scale-x-0 bg-clay"></div>
+
+  <!-- ===== icon sprite (custom line icons, no emoji) ===== -->
+  <svg width="0" height="0" class="absolute" aria-hidden="true"><defs>
+    <symbol id="i-shingle" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 11 12 4l9.5 7"/><path d="M5 9.7V20h14V9.7"/><path d="M5 13.2h14M5 16.6h14"/></g></symbol>
+    <symbol id="i-wrench" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 4.5a4 4 0 0 0-5.3 4.9L4 15.6a1.8 1.8 0 1 0 2.5 2.5l6.2-6.2a4 4 0 0 0 4.9-5.3l-2.4 2.4-2.1-.5-.5-2.1z"/></g></symbol>
+    <symbol id="i-storm" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16.5A4.5 4.5 0 0 1 7.3 7.6 6 6 0 0 1 19 9a3.8 3.8 0 0 1-.6 7.5"/><path d="m12 12-2 3.2h2.6L10.4 19"/></g></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-3.6-3.6"/></g></symbol>
+    <symbol id="i-gutter" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h14a2 2 0 0 1 2 2v1H6v8a2 2 0 0 1-2-2V6z"/><path d="M9 13v3M13 13v4M17 13v2"/></g></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4 4 10-10"/></g></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5.5 18.5 12 12 18.5"/></g></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h3l1.3 4-2 1.4a12 12 0 0 0 5.3 5.3l1.4-2 4 1.3v3a2 2 0 0 1-2.2 2A16.8 16.8 0 0 1 4.5 5.7a2 2 0 0 1 2-2.2z"/></g></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path fill="currentColor" d="m12 2.6 2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1L3.2 9.1l6.1-.9L12 2.6z"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11z"/><circle cx="12" cy="10" r="2.4"/></g></symbol>
+    <symbol id="i-peak" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14 12 6l9 8"/><path d="M12 6V3"/></g></symbol>
+  </defs></svg>
+
+  <!-- ===== UTILITY BAR ===== -->
+  <div class="hidden border-b border-ink-800 bg-ink text-paper-200 md:block">
+    <div class="mx-auto flex max-w-7xl items-center justify-between px-8 py-2 text-[0.78rem]">
+      <p class="flex items-center gap-2">
+        <svg class="h-3.5 w-3.5 text-clay"><use href="#i-star"/></svg>
+        <span class="font-500 text-paper">4.9</span> from 300+ Google reviews
+      </p>
+      <p class="text-stone">Mon–Sat · 7am–7pm &nbsp;·&nbsp; Licensed &amp; insured · WSIB covered &nbsp;·&nbsp; Lic. #ROC-2024-8841</p>
+    </div>
+  </div>
+
+  <!-- ===== HEADER ===== -->
+  <header data-header class="sticky top-0 z-50 border-b border-line bg-paper/85 backdrop-blur transition-shadow duration-300">
+    <div class="mx-auto max-w-7xl px-5 sm:px-8">
+      <div class="flex h-[68px] items-center justify-between gap-4">
+        <a href="#top" class="flex items-center gap-2.5">
+          <span class="grid h-9 w-9 place-items-center rounded-md bg-ink text-clay"><svg class="h-5 w-5"><use href="#i-peak"/></svg></span>
+          <span class="font-display text-[1.4rem] font-700 leading-none tracking-tight">Summit Ridge</span>
+        </a>
+
+        <nav class="hidden items-center gap-9 text-[0.92rem] font-500 text-ink-700 lg:flex">
+          <a href="#services" class="link-underline">Services</a>
+          <a href="#why" class="link-underline">Why us</a>
+          <a href="#work" class="link-underline">Our work</a>
+          <a href="#reviews" class="link-underline">Reviews</a>
+          <a href="#areas" class="link-underline">Areas</a>
+        </nav>
+
+        <div class="flex items-center gap-4">
+          <a href="tel:+19055550142" class="hidden items-center gap-2 text-[0.92rem] font-600 sm:flex">
+            <svg class="h-4 w-4 text-clay"><use href="#i-phone"/></svg> (905) 555-0142
+          </a>
+          <a href="#quote" class="inline-flex items-center gap-2 rounded-full bg-clay px-5 py-2.5 text-sm font-600 text-paper transition duration-200 hover:bg-clay-600 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2 focus-visible:ring-offset-paper active:translate-y-0">
+            Free inspection
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+
+    <!-- ===== HERO (bold, full-bleed photo) ===== -->
+    <section class="snap-section relative isolate flex min-h-[600px] items-end overflow-hidden lg:min-h-[720px]">
+      <img src="assets/images/hero-home.jpg" alt="A premium home in Durham Region with a new roof" class="kenburns img-treat absolute inset-0 -z-20 h-full w-full object-cover" />
+      <div class="absolute inset-0 -z-10 bg-gradient-to-tr from-ink via-ink/75 to-ink/15"></div>
+      <div class="absolute inset-0 -z-10 bg-gradient-to-t from-ink/95 via-ink/10 to-transparent"></div>
+
+      <div class="mx-auto w-full max-w-7xl px-5 pb-12 pt-32 sm:px-8 lg:pb-16 lg:pt-40">
+        <div class="reveal-group max-w-2xl text-paper">
+          <p class="eyebrow text-clay">Roofing · Durham Region · Est. 2004</p>
+          <h1 class="mt-6 font-display text-[2.9rem] font-700 leading-[0.98] tracking-[-0.02em] sm:text-[4.6rem]">
+            The last roof<br>your home<br>will need.
+          </h1>
+          <p class="mt-7 max-w-lg text-[1.1rem] leading-[1.7] text-paper-200">
+            Premium replacement and repair across Durham Region — installed by a licensed crew, finished like it's our own home, and backed by a written 25-year workmanship warranty.
+          </p>
+
+          <div class="mt-9 flex flex-col gap-3 sm:flex-row">
+            <a href="#quote" class="group inline-flex items-center justify-center gap-2.5 rounded-full bg-clay px-7 py-4 text-[1.02rem] font-600 text-paper shadow-float transition duration-200 hover:bg-clay-600 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2 focus-visible:ring-offset-ink active:translate-y-0">
+              Book a free inspection
+              <svg class="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1"><use href="#i-arrow"/></svg>
+            </a>
+            <a href="tel:+19055550142" class="inline-flex items-center justify-center gap-2.5 rounded-full border border-paper/30 px-7 py-4 text-[1.02rem] font-600 text-paper backdrop-blur-sm transition duration-200 hover:border-paper/60 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-paper/50 active:translate-y-0">
+              <svg class="h-4 w-4 text-clay"><use href="#i-phone"/></svg> (905) 555-0142
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== STAT / TRUST STRIP ===== -->
+    <section class="snap-section border-b border-line bg-ink text-paper">
+      <div class="reveal-group mx-auto grid max-w-7xl grid-cols-2 divide-x divide-white/10 lg:grid-cols-4">
+        <div class="px-5 py-7 text-center sm:px-6">
+          <p class="font-display text-[1.9rem] font-700 leading-none text-paper"><span data-count="1200">0</span><span class="text-clay">+</span></p>
+          <p class="mt-1.5 text-xs uppercase tracking-wider text-stone">roofs installed</p>
+        </div>
+        <div class="px-5 py-7 text-center sm:px-6">
+          <p class="font-display text-[1.9rem] font-700 leading-none text-paper"><span data-count="4.9" data-decimals="1">0</span><span class="text-clay">★</span></p>
+          <p class="mt-1.5 text-xs uppercase tracking-wider text-stone">300+ reviews</p>
+        </div>
+        <div class="border-t border-white/10 px-5 py-7 text-center sm:px-6 lg:border-t-0">
+          <p class="font-display text-[1.9rem] font-700 leading-none text-paper"><span data-count="25">0</span><span class="text-clay">yr</span></p>
+          <p class="mt-1.5 text-xs uppercase tracking-wider text-stone">workmanship warranty</p>
+        </div>
+        <div class="border-t border-white/10 px-5 py-7 text-center sm:px-6 lg:border-t-0">
+          <p class="font-display text-[1.9rem] font-700 leading-none text-paper"><span data-count="20">0</span><span class="text-clay">yrs</span></p>
+          <p class="mt-1.5 text-xs uppercase tracking-wider text-stone">on Durham roofs</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SERVICES (editorial list) ===== -->
+    <section id="services" class="snap-section mx-auto max-w-7xl px-5 py-20 sm:px-8 lg:py-28">
+      <div class="grid grid-cols-1 gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
+        <div class="reveal lg:sticky lg:top-28 lg:self-start">
+          <p class="eyebrow text-clay-600">01 · What we do</p>
+          <h2 class="mt-5 font-display text-[2.2rem] font-600 leading-[1.04] tracking-[-0.02em] sm:text-[2.9rem]">Five services,<br>one standard.</h2>
+          <p class="mt-5 max-w-xs text-[1.02rem] leading-relaxed text-ink-700">From a single leak to a full tear-off, every job gets the same crew, the same cleanup, and the same warranty.</p>
+          <a href="#quote" class="mt-7 inline-flex items-center gap-2 font-600 text-clay link-underline">Book a free inspection <svg class="h-4 w-4"><use href="#i-arrow"/></svg></a>
+        </div>
+
+        <div class="reveal-group border-t border-line">
+          <a href="#quote" class="group flex items-start gap-5 border-b border-line py-7 transition-colors hover:bg-paper-100/60">
+            <span class="mt-1 font-display text-sm font-600 text-stone">01</span>
+            <svg class="mt-0.5 h-7 w-7 shrink-0 text-clay"><use href="#i-shingle"/></svg>
+            <div class="flex-1">
+              <h3 class="font-display text-xl font-600">Roof Replacement</h3>
+              <p class="mt-1.5 text-[0.98rem] leading-relaxed text-ink-700">Full tear-off, new underlayment, and architectural shingles rated to 110 mph wind. Most homes finished in a single day.</p>
+            </div>
+            <svg class="mt-1 h-5 w-5 shrink-0 text-stone transition-transform duration-200 group-hover:translate-x-1 group-hover:text-clay"><use href="#i-arrow"/></svg>
+          </a>
+          <a href="#quote" class="group flex items-start gap-5 border-b border-line py-7 transition-colors hover:bg-paper-100/60">
+            <span class="mt-1 font-display text-sm font-600 text-stone">02</span>
+            <svg class="mt-0.5 h-7 w-7 shrink-0 text-clay"><use href="#i-wrench"/></svg>
+            <div class="flex-1">
+              <h3 class="font-display text-xl font-600">Roof Repair</h3>
+              <p class="mt-1.5 text-[0.98rem] leading-relaxed text-ink-700">Leaks, lifted shingles, and failed flashing — diagnosed and sealed properly, usually in one visit.</p>
+            </div>
+            <svg class="mt-1 h-5 w-5 shrink-0 text-stone transition-transform duration-200 group-hover:translate-x-1 group-hover:text-clay"><use href="#i-arrow"/></svg>
+          </a>
+          <a href="#quote" class="group flex items-start gap-5 border-b border-line py-7 transition-colors hover:bg-paper-100/60">
+            <span class="mt-1 font-display text-sm font-600 text-stone">03</span>
+            <svg class="mt-0.5 h-7 w-7 shrink-0 text-clay"><use href="#i-storm"/></svg>
+            <div class="flex-1">
+              <h3 class="font-display text-xl font-600">Storm &amp; Hail Damage</h3>
+              <p class="mt-1.5 text-[0.98rem] leading-relaxed text-ink-700">Same-day emergency tarping and full photo documentation prepared for your insurance adjuster.</p>
+            </div>
+            <svg class="mt-1 h-5 w-5 shrink-0 text-stone transition-transform duration-200 group-hover:translate-x-1 group-hover:text-clay"><use href="#i-arrow"/></svg>
+          </a>
+          <a href="#quote" class="group flex items-start gap-5 border-b border-line py-7 transition-colors hover:bg-paper-100/60">
+            <span class="mt-1 font-display text-sm font-600 text-stone">04</span>
+            <svg class="mt-0.5 h-7 w-7 shrink-0 text-clay"><use href="#i-search"/></svg>
+            <div class="flex-1">
+              <h3 class="font-display text-xl font-600">Roof Inspections</h3>
+              <p class="mt-1.5 text-[0.98rem] leading-relaxed text-ink-700">A 21-point assessment with drone photos and a plain-English report. Honest advice, no scare tactics.</p>
+            </div>
+            <svg class="mt-1 h-5 w-5 shrink-0 text-stone transition-transform duration-200 group-hover:translate-x-1 group-hover:text-clay"><use href="#i-arrow"/></svg>
+          </a>
+          <a href="#quote" class="group flex items-start gap-5 py-7 transition-colors hover:bg-paper-100/60">
+            <span class="mt-1 font-display text-sm font-600 text-stone">05</span>
+            <svg class="mt-0.5 h-7 w-7 shrink-0 text-clay"><use href="#i-gutter"/></svg>
+            <div class="flex-1">
+              <h3 class="font-display text-xl font-600">Eavestroughs &amp; Gutters</h3>
+              <p class="mt-1.5 text-[0.98rem] leading-relaxed text-ink-700">Seamless aluminum troughs and leaf guards, colour-matched to your fascia and sized for our winters.</p>
+            </div>
+            <svg class="mt-1 h-5 w-5 shrink-0 text-stone transition-transform duration-200 group-hover:translate-x-1 group-hover:text-clay"><use href="#i-arrow"/></svg>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== WHY US ===== -->
+    <section id="why" class="snap-section border-y border-line bg-paper-100">
+      <div class="mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 px-5 py-20 sm:px-8 lg:grid-cols-2 lg:gap-16 lg:py-28">
+        <div class="reveal relative order-2 lg:order-1">
+          <div class="grain relative overflow-hidden rounded-[1.4rem] shadow-card">
+            <img class="img-treat aspect-[5/4] w-full object-cover" src="assets/images/crew-working.jpg" alt="A Summit Ridge roofer replacing a roof" />
+            <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/45 to-transparent"></div>
+          </div>
+          <div class="absolute -bottom-6 -right-3 hidden rounded-xl border border-line bg-paper px-5 py-4 text-center shadow-card sm:block">
+            <p class="font-display text-[1.8rem] font-700 leading-none text-clay">100%</p>
+            <p class="mt-1 text-xs text-stone">cleanup, guaranteed</p>
+          </div>
+        </div>
+
+        <div class="order-1 lg:order-2">
+          <div class="reveal">
+            <p class="eyebrow text-clay-600">02 · Why homeowners choose us</p>
+            <h2 class="mt-5 font-display text-[2.2rem] font-600 leading-[1.08] tracking-[-0.02em] sm:text-[2.9rem]">A roof is a big decision. We make it an easy one.</h2>
+          </div>
+          <dl class="reveal-group mt-9 space-y-7">
+            <div class="flex gap-4">
+              <span class="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-clay-50 text-clay"><svg class="h-5 w-5"><use href="#i-check"/></svg></span>
+              <div><dt class="font-display text-lg font-600">A written 25-year workmanship warranty</dt><dd class="mt-1 text-[0.98rem] leading-relaxed text-ink-700">Not just the shingles — our labour is guaranteed for 25 years, on paper, transferable to the next owner.</dd></div>
+            </div>
+            <div class="flex gap-4">
+              <span class="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-clay-50 text-clay"><svg class="h-5 w-5"><use href="#i-check"/></svg></span>
+              <div><dt class="font-display text-lg font-600">Fixed quotes, no surprises</dt><dd class="mt-1 text-[0.98rem] leading-relaxed text-ink-700">A clear written price before we start. No change-order games, no high-pressure closing.</dd></div>
+            </div>
+            <div class="flex gap-4">
+              <span class="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-clay-50 text-clay"><svg class="h-5 w-5"><use href="#i-check"/></svg></span>
+              <div><dt class="font-display text-lg font-600">Spotless when we leave</dt><dd class="mt-1 text-[0.98rem] leading-relaxed text-ink-700">We magnet-sweep the entire property for nails and haul every scrap. Your yard is left cleaner than we found it.</dd></div>
+            </div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== PROCESS ===== -->
+    <section id="process" class="snap-section mx-auto max-w-7xl px-5 py-20 sm:px-8 lg:py-28">
+      <div class="reveal max-w-xl">
+        <p class="eyebrow text-clay-600">03 · How it works</p>
+        <h2 class="mt-5 font-display text-[2.2rem] font-600 leading-[1.08] tracking-[-0.02em] sm:text-[2.9rem]">Four steps to a worry-free roof.</h2>
+      </div>
+      <div class="reveal-group mt-14 grid grid-cols-1 gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="border-t-2 border-ink pt-5">
+          <p class="font-display text-sm font-600 text-clay">STEP 01</p>
+          <h3 class="mt-3 font-display text-xl font-600">Free inspection</h3>
+          <p class="mt-2 text-[0.96rem] leading-relaxed text-ink-700">We assess the roof and send drone photos with an honest report — no obligation.</p>
+        </div>
+        <div class="border-t-2 border-line pt-5">
+          <p class="font-display text-sm font-600 text-clay">STEP 02</p>
+          <h3 class="mt-3 font-display text-xl font-600">Written quote</h3>
+          <p class="mt-2 text-[0.96rem] leading-relaxed text-ink-700">A fixed, itemized price with material options and financing if you want it.</p>
+        </div>
+        <div class="border-t-2 border-line pt-5">
+          <p class="font-display text-sm font-600 text-clay">STEP 03</p>
+          <h3 class="mt-3 font-display text-xl font-600">Expert install</h3>
+          <p class="mt-2 text-[0.96rem] leading-relaxed text-ink-700">Our certified crew completes most homes in one to two days, then sweeps the site clean.</p>
+        </div>
+        <div class="border-t-2 border-line pt-5">
+          <p class="font-display text-sm font-600 text-clay">STEP 04</p>
+          <h3 class="mt-3 font-display text-xl font-600">25-year warranty</h3>
+          <p class="mt-2 text-[0.96rem] leading-relaxed text-ink-700">You're protected in writing — and we're one call away if you ever need us.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== OUR WORK (projects gallery) ===== -->
+    <section id="work" class="snap-section bg-ink text-paper">
+      <div class="mx-auto max-w-7xl px-5 py-20 sm:px-8 lg:py-28">
+        <div class="reveal flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-end">
+          <div class="max-w-xl">
+            <p class="eyebrow text-clay">04 · Recent work</p>
+            <h2 class="mt-5 font-display text-[2.2rem] font-600 leading-[1.08] tracking-[-0.02em] text-paper sm:text-[2.9rem]">Roofs we're proud to put our name on.</h2>
+          </div>
+          <a href="#quote" class="inline-flex items-center gap-2 font-600 text-clay link-underline">Start your project <svg class="h-4 w-4"><use href="#i-arrow"/></svg></a>
+        </div>
+
+        <div class="reveal-group mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <figure class="group grain relative overflow-hidden rounded-xl">
+            <img class="img-treat aspect-[4/5] w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]" src="assets/images/project-1.jpg" alt="Completed roof replacement in Pickering">
+            <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/10 to-transparent"></div>
+            <figcaption class="absolute bottom-5 left-5">
+              <p class="text-xs uppercase tracking-wider text-clay">Full replacement</p>
+              <p class="font-display text-lg font-600 text-paper">Cape-style home · Pickering</p>
+            </figcaption>
+          </figure>
+          <figure class="group grain relative overflow-hidden rounded-xl">
+            <img class="img-treat aspect-[4/5] w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]" src="assets/images/project-2.jpg" alt="Roofer installing shingles in Ajax">
+            <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/10 to-transparent"></div>
+            <figcaption class="absolute bottom-5 left-5">
+              <p class="text-xs uppercase tracking-wider text-clay">In progress</p>
+              <p class="font-display text-lg font-600 text-paper">Architectural shingle · Ajax</p>
+            </figcaption>
+          </figure>
+          <figure class="group grain relative overflow-hidden rounded-xl sm:col-span-2 lg:col-span-1">
+            <img class="img-treat aspect-[16/10] w-full object-cover transition-transform duration-500 group-hover:scale-[1.04] lg:aspect-[4/5]" src="assets/images/project-3.jpg" alt="Steep-slope re-roof in Uxbridge">
+            <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/10 to-transparent"></div>
+            <figcaption class="absolute bottom-5 left-5">
+              <p class="text-xs uppercase tracking-wider text-clay">Steep-slope re-roof</p>
+              <p class="font-display text-lg font-600 text-paper">Timber home · Uxbridge</p>
+            </figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== REVIEWS ===== -->
+    <section id="reviews" class="snap-section mx-auto max-w-7xl px-5 py-20 sm:px-8 lg:py-28">
+      <div class="reveal flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-end">
+        <div class="max-w-xl">
+          <p class="eyebrow text-clay-600">05 · In their words</p>
+          <h2 class="mt-5 font-display text-[2.2rem] font-600 leading-[1.08] tracking-[-0.02em] sm:text-[2.9rem]">Trusted by 1,200+ Durham homeowners.</h2>
+        </div>
+        <div class="flex items-center gap-3 text-sm">
+          <span class="inline-flex text-clay"><svg class="h-5 w-5"><use href="#i-star"/></svg><svg class="h-5 w-5"><use href="#i-star"/></svg><svg class="h-5 w-5"><use href="#i-star"/></svg><svg class="h-5 w-5"><use href="#i-star"/></svg><svg class="h-5 w-5"><use href="#i-star"/></svg></span>
+          <span class="text-ink-700"><span class="font-600 text-ink">4.9</span> · 300+ Google reviews</span>
+        </div>
+      </div>
+
+      <div class="reveal-group mt-12 grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <figure class="rounded-2xl border border-line bg-paper-100 p-7 shadow-card">
+          <p class="font-display text-4xl leading-none text-clay">“</p>
+          <blockquote class="mt-2 text-[1.02rem] leading-relaxed text-ink-700">They replaced our roof in a single day and you'd never know a crew had been here — spotless. The quote was exactly what we paid.</blockquote>
+          <figcaption class="mt-5 text-sm font-600">Karen M. <span class="font-400 text-stone">— Whitby</span></figcaption>
+        </figure>
+        <figure class="rounded-2xl border border-line bg-paper-100 p-7 shadow-card">
+          <p class="font-display text-4xl leading-none text-clay">“</p>
+          <blockquote class="mt-2 text-[1.02rem] leading-relaxed text-ink-700">After a bad storm they had us tarped within hours and handled the entire insurance claim. Genuinely stress-free.</blockquote>
+          <figcaption class="mt-5 text-sm font-600">Dave R. <span class="font-400 text-stone">— Ajax</span></figcaption>
+        </figure>
+        <figure class="rounded-2xl border border-line bg-paper-100 p-7 shadow-card">
+          <p class="font-display text-4xl leading-none text-clay">“</p>
+          <blockquote class="mt-2 text-[1.02rem] leading-relaxed text-ink-700">Honest inspection — they told me I only needed a repair, not a replacement. Saved me thousands. I'll call them every time.</blockquote>
+          <figcaption class="mt-5 text-sm font-600">Priya S. <span class="font-400 text-stone">— Pickering</span></figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- ===== SERVICE AREA ===== -->
+    <section id="areas" class="snap-section border-t border-line bg-paper-100">
+      <div class="mx-auto grid max-w-7xl grid-cols-1 gap-12 px-5 py-20 sm:px-8 lg:grid-cols-2 lg:items-center lg:gap-16 lg:py-28">
+        <div class="reveal">
+          <p class="eyebrow text-clay-600">06 · Where we work</p>
+          <h2 class="mt-5 font-display text-[2.2rem] font-600 leading-[1.08] tracking-[-0.02em] sm:text-[2.9rem]">Local to Durham Region &amp; the east GTA.</h2>
+          <p class="mt-5 max-w-md text-[1.02rem] leading-relaxed text-ink-700">Family-owned and on your street — not a call centre two cities over. If you're nearby and don't see your town, just ask.</p>
+          <ul class="mt-7 grid grid-cols-2 gap-x-6 gap-y-2.5 text-[0.98rem] sm:grid-cols-3">
+            <li class="flex items-center gap-2"><svg class="h-4 w-4 text-clay"><use href="#i-pin"/></svg> Ajax</li>
+            <li class="flex items-center gap-2"><svg class="h-4 w-4 text-clay"><use href="#i-pin"/></svg> Pickering</li>
+            <li class="flex items-center gap-2"><svg class="h-4 w-4 text-clay"><use href="#i-pin"/></svg> Whitby</li>
+            <li class="flex items-center gap-2"><svg class="h-4 w-4 text-clay"><use href="#i-pin"/></svg> Oshawa</li>
+            <li class="flex items-center gap-2"><svg class="h-4 w-4 text-clay"><use href="#i-pin"/></svg> Markham</li>
+            <li class="flex items-center gap-2"><svg class="h-4 w-4 text-clay"><use href="#i-pin"/></svg> Scarborough</li>
+          </ul>
+        </div>
+        <div id="map" class="isolate z-0 h-[380px] w-full overflow-hidden rounded-[1.4rem] border border-line shadow-card lg:h-[500px]" role="application" aria-label="Map of Summit Ridge Roofing project locations across Durham Region"></div>
+      </div>
+    </section>
+
+    <!-- ===== CTA + FORM ===== -->
+    <section id="quote" class="snap-section bg-ink text-paper">
+      <div class="mx-auto grid max-w-7xl grid-cols-1 gap-12 px-5 py-20 sm:px-8 lg:grid-cols-2 lg:items-center lg:gap-16 lg:py-28">
+        <div class="reveal">
+          <p class="eyebrow text-clay">Free inspection</p>
+          <h2 class="mt-5 font-display text-[2.4rem] font-700 leading-[1.02] tracking-[-0.02em] text-paper sm:text-[3.4rem]">Let's take a look at your roof.</h2>
+          <p class="mt-5 max-w-md text-[1.06rem] leading-[1.7] text-paper-200">Send the details and we'll call within one business day to book a time. No cost, no obligation, no pressure.</p>
+          <ul class="mt-9 space-y-3.5 text-paper-200">
+            <li class="flex items-center gap-3"><svg class="h-5 w-5 text-clay"><use href="#i-check"/></svg> 21-point inspection with drone photos</li>
+            <li class="flex items-center gap-3"><svg class="h-5 w-5 text-clay"><use href="#i-check"/></svg> A plain-English quote — repair or replace</li>
+            <li class="flex items-center gap-3"><svg class="h-5 w-5 text-clay"><use href="#i-check"/></svg> Financing available, OAC</li>
+          </ul>
+          <div class="mt-9">
+            <p class="text-sm text-stone">Prefer to talk now?</p>
+            <a href="tel:+19055550142" class="font-display text-[1.8rem] font-700 text-paper link-underline">(905) 555-0142</a>
+          </div>
+        </div>
+
+        <div class="reveal rounded-[1.4rem] bg-paper p-6 text-ink shadow-float sm:p-8">
+          <form data-quote-form novalidate>
+            <div class="grid grid-cols-1 gap-4">
+              <div>
+                <label class="text-sm font-600" for="name">Full name</label>
+                <input id="name" name="name" type="text" required placeholder="Jane Doe" class="mt-1.5 w-full rounded-lg border border-line bg-paper-100 px-4 py-3 text-ink placeholder:text-stone/70 transition focus:border-clay focus:bg-white focus:outline-none focus:ring-4 focus:ring-clay/15" />
+              </div>
+              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label class="text-sm font-600" for="phone">Phone</label>
+                  <input id="phone" name="phone" type="tel" required placeholder="(905) 555-0000" class="mt-1.5 w-full rounded-lg border border-line bg-paper-100 px-4 py-3 text-ink placeholder:text-stone/70 transition focus:border-clay focus:bg-white focus:outline-none focus:ring-4 focus:ring-clay/15" />
+                </div>
+                <div>
+                  <label class="text-sm font-600" for="email">Email</label>
+                  <input id="email" name="email" type="email" placeholder="jane@email.com" class="mt-1.5 w-full rounded-lg border border-line bg-paper-100 px-4 py-3 text-ink placeholder:text-stone/70 transition focus:border-clay focus:bg-white focus:outline-none focus:ring-4 focus:ring-clay/15" />
+                </div>
+              </div>
+              <div>
+                <label class="text-sm font-600" for="service">What do you need?</label>
+                <select id="service" name="service" class="mt-1.5 w-full rounded-lg border border-line bg-paper-100 px-4 py-3 text-ink transition focus:border-clay focus:bg-white focus:outline-none focus:ring-4 focus:ring-clay/15">
+                  <option>Roof replacement</option>
+                  <option>Roof repair</option>
+                  <option>Storm / hail damage</option>
+                  <option>Eavestroughs / gutters</option>
+                  <option>Not sure — please advise</option>
+                </select>
+              </div>
+              <button type="submit" class="mt-1 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-clay px-6 py-3.5 text-[1.02rem] font-600 text-paper shadow-float transition duration-200 hover:bg-clay-600 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2 active:translate-y-0">
+                Book my free inspection
+              </button>
+              <p data-done class="hidden text-center text-sm font-600 text-clay">Thanks — we'll call you within one business day.</p>
+              <p class="text-center text-xs text-stone">We'll only use your details to book your inspection.</p>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="bg-ink-800 text-paper-200">
+    <div class="mx-auto max-w-7xl px-5 py-14 sm:px-8">
+      <div class="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="sm:col-span-2 lg:col-span-1">
+          <div class="flex items-center gap-2.5">
+            <span class="grid h-9 w-9 place-items-center rounded-md bg-clay text-paper"><svg class="h-5 w-5"><use href="#i-peak"/></svg></span>
+            <span class="font-display text-[1.35rem] font-700 text-paper">Summit Ridge</span>
+          </div>
+          <p class="mt-4 max-w-xs text-sm leading-relaxed text-stone">Durham Region's trusted roofing team since 2004. Licensed, insured, and warrantied — roofing done properly.</p>
+        </div>
+        <div>
+          <h4 class="text-xs font-700 uppercase tracking-wider text-paper">Services</h4>
+          <ul class="mt-4 space-y-2.5 text-sm">
+            <li><a href="#services" class="link-underline">Roof replacement</a></li>
+            <li><a href="#services" class="link-underline">Roof repair</a></li>
+            <li><a href="#services" class="link-underline">Storm damage</a></li>
+            <li><a href="#services" class="link-underline">Eavestroughs</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="text-xs font-700 uppercase tracking-wider text-paper">Company</h4>
+          <ul class="mt-4 space-y-2.5 text-sm">
+            <li><a href="#why" class="link-underline">Why us</a></li>
+            <li><a href="#work" class="link-underline">Our work</a></li>
+            <li><a href="#reviews" class="link-underline">Reviews</a></li>
+            <li><a href="#quote" class="link-underline">Free inspection</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="text-xs font-700 uppercase tracking-wider text-paper">Contact</h4>
+          <ul class="mt-4 space-y-2.5 text-sm">
+            <li><a href="tel:+19055550142" class="font-600 text-paper link-underline">(905) 555-0142</a></li>
+            <li>hello@summitridgeroofing.ca</li>
+            <li>Mon–Sat · 7am–7pm</li>
+            <li class="text-stone">Licence #ROC-2024-8841</li>
+          </ul>
+        </div>
+      </div>
+      <div class="mt-12 flex flex-col items-center justify-between gap-3 border-t border-white/10 pt-6 text-xs text-stone sm:flex-row">
+        <p>© 2026 Summit Ridge Roofing. All rights reserved.</p>
+        <p>Demo site by Pikasso Presents.</p>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

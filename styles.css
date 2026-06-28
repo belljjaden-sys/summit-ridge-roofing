@@ -1,0 +1,123 @@
+/* ============================================================
+   Summit Ridge Roofing — custom styles
+   Utility classes live in the HTML (Tailwind). This file holds
+   the bespoke bits Tailwind doesn't give us: motion, scroll-snap,
+   reveal-on-scroll, and texture.
+   ============================================================ */
+
+:root { color-scheme: light; }
+
+body {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Variable display font: let it pick the right optical size */
+.font-display { font-optical-sizing: auto; }
+
+/* Branded text selection */
+::selection { background: #BE5429; color: #F6F1E9; }
+
+/* Eyebrow label with a short leading rule (inherits text colour) */
+.eyebrow {
+  font-size: .72rem;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.eyebrow::before {
+  content: "";
+  display: inline-block;
+  width: 1.75rem;
+  height: 1px;
+  background: currentColor;
+  opacity: .55;
+  vertical-align: middle;
+  margin-right: .6rem;
+}
+
+/* Subtle paper grain over image panels for depth */
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: .4;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
+}
+
+/* Gentle photo grade so stock shots feel consistent */
+.img-treat { filter: saturate(1.05) contrast(1.03); }
+
+/* Link underline that wipes in on hover (animates background-size only) */
+.link-underline {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 0% 1px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  transition: background-size .3s ease;
+}
+.link-underline:hover { background-size: 100% 1px; }
+
+/* ---- Scroll-snap: each section settles into the frame (desktop/tablet) ---- */
+html { scroll-padding-top: 4.75rem; }
+@media (min-width: 768px) {
+  html { scroll-snap-type: y proximity; }
+  .snap-section { scroll-snap-align: start; }
+}
+
+/* ---- Reveal on scroll (only active when JS is present) ---- */
+.js .reveal,
+.js .reveal-group > * {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity .8s cubic-bezier(.22,.61,.36,1),
+              transform .8s cubic-bezier(.22,.61,.36,1);
+}
+.js .reveal.is-visible,
+.js .reveal-group.is-visible > * {
+  opacity: 1;
+  transform: none;
+}
+/* staggered children */
+.js .reveal-group.is-visible > *:nth-child(2) { transition-delay: .08s; }
+.js .reveal-group.is-visible > *:nth-child(3) { transition-delay: .16s; }
+.js .reveal-group.is-visible > *:nth-child(4) { transition-delay: .24s; }
+.js .reveal-group.is-visible > *:nth-child(5) { transition-delay: .32s; }
+.js .reveal-group.is-visible > *:nth-child(6) { transition-delay: .40s; }
+
+/* ---- Leaflet map theming ---- */
+/* Height in real CSS (not a Tailwind class) so the container has size the instant
+   Leaflet initialises — the Tailwind CDN applies its classes a tick later, which
+   would otherwise init the map at 0px tall and render a blank tile area. */
+#map { height: 380px; }
+@media (min-width: 1024px) { #map { height: 500px; } }
+.leaflet-container { background: #EEE6D8; font-family: Inter, system-ui, sans-serif; }
+.leaflet-container img { max-width: none !important; }  /* guard against CSS resets */
+.srr-pin svg { filter: drop-shadow(0 4px 5px rgba(27,23,20,.35)); }
+.leaflet-popup-content-wrapper { border-radius: .6rem; }
+.leaflet-popup-content { margin: .6rem .85rem; font-size: .9rem; line-height: 1.35; }
+.leaflet-bar a { color: #1B1714; }
+.leaflet-bar a:hover { color: #BE5429; }
+.leaflet-control-attribution { font-size: 10px; }
+
+/* ---- Hero: slow Ken Burns drift ---- */
+.kenburns { animation: kenburns 24s ease-in-out infinite alternate; transform-origin: 60% 40%; }
+@keyframes kenburns {
+  from { transform: scale(1.0); }
+  to   { transform: scale(1.09); }
+}
+
+/* ---- ?still : freeze motion + show everything (used for screenshots) ---- */
+html.still *, html.still *::before, html.still *::after { animation: none !important; transition: none !important; }
+html.still .reveal, html.still .reveal-group > * { opacity: 1 !important; transform: none !important; }
+html.still { scroll-snap-type: none !important; }
+
+/* ---- Respect users who prefer reduced motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+  html { scroll-behavior: auto; scroll-snap-type: none; }
+  .js .reveal,
+  .js .reveal-group > * { opacity: 1 !important; transform: none !important; }
+}
